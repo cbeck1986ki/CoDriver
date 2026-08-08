@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#16a34a">
+<title>Fahrtenbuch</title>
+<style>
+  /* === Reset & Base === */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: #f4f5f7;
+    color: #111827;
+    line-height: 1.4;
+    -webkit-font-smoothing: antialiased;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  #app {
+    max-width: 640px;
+    margin: 0 auto;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    background: #111827;
+    color: #fff;
+    padding: 16px 20px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  header h1 { font-size: 20px; font-weight: 600; }
+
+  main { padding: 20px; flex: 1; }
+
+  .hidden { display: none !important; }
+
+  /* === Buttons === */
+  button {
+    font-family: inherit;
+    font-size: 18px;
+    font-weight: 600;
+    border: none;
+    border-radius: 14px;
+    padding: 18px 24px;
+    cursor: pointer;
+    width: 100%;
+    transition: transform 0.05s, opacity 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  button:active { transform: scale(0.98); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-start {
+    background: #16a34a;
+    color: #fff;
+    font-size: 22px;
+    padding: 28px 24px;
+    box-shadow: 0 4px 14px rgba(22,163,74,0.4);
+  }
+  .btn-end {
+    background: #dc2626;
+    color: #fff;
+    font-size: 22px;
+    padding: 28px 24px;
+    box-shadow: 0 4px 14px rgba(220,38,38,0.4);
+  }
+  .btn-primary { background: #2563eb; color: #fff; }
+  .btn-secondary { background: #e5e7eb; color: #111827; }
+  .btn-danger { background: #dc2626; color: #fff; }
+
+  .btn-export {
+    background: #fff;
+    color: #2563eb;
+    border: 2px solid #2563eb;
+    font-size: 14px;
+    padding: 8px 14px;
+    width: auto;
+    border-radius: 8px;
+    margin-top: 8px;
+    font-weight: 600;
+  }
+
+  /* === Error banner === */
+  .error-banner {
+    background: #fef3c7;
+    border: 1px solid #f59e0b;
+    color: #92400e;
+    padding: 12px 16px;
+    border-radius: 10px;
+    margin-top: 16px;
+    font-size: 15px;
+  }
+  .error-banner.critical {
+    background: #fee2e2;
+    border-color: #dc2626;
+    color: #991b1b;
+  }
+
+  /* === Active view === */
+  #view-active { display: flex; flex-direction: column; gap: 20px; }
+  .live-display {
+    background: #111827;
+    color: #fff;
+    border-radius: 20px;
+    padding: 36px 24px;
+    text-align: center;
+  }
+  .live-km {
+    font-size: 56px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -1px;
+    line-height: 1;
+  }
+  .live-km-unit { font-size: 26px; font-weight: 600; opacity: 0.8; }
+  .live-time {
+    font-size: 28px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    margin-top: 10px;
+    color: #93c5fd;
+  }
+  .live-accuracy {
+    font-size: 13px;
+    opacity: 0.7;
+    margin-top: 14px;
+  }
+  .live-accuracy.warn { color: #fbbf24; opacity: 1; }
+  .live-accuracy.good { color: #4ade80; opacity: 1; }
+
+  .status-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fff;
+    padding: 14px 16px;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    font-size: 14px;
+    color: #374151;
+  }
+
+  /* === Trips list === */
+  #trips-section { margin-top: 28px; }
+  #trips-section h2 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #374151;
+  }
+  .empty-state {
+    text-align: center;
+    color: #6b7280;
+    padding: 40px 20px;
+    font-size: 15px;
+    background: #fff;
+    border-radius: 12px;
+    border: 1px dashed #d1d5db;
+  }
+  .day-group {
+    margin-bottom: 20px;
+    background: #fff;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+  }
+  .day-header {
+    background: #f9fafb;
+    padding: 14px 16px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .day-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+  .day-date { font-weight: 600; font-size: 15px; color: #111827; }
+  .day-total {
+    font-size: 14px;
+    color: #16a34a;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .trip-item {
+    padding: 14px 16px;
+    border-bottom: 1px solid #f3f4f6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+  .trip-item:last-child { border-bottom: none; }
+  .trip-info { flex: 1; min-width: 0; }
+  .trip-name {
+    font-weight: 600;
+    font-size: 16px;
+    color: #111827;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .trip-meta {
+    font-size: 13px;
+    color: #6b7280;
+    margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+  .trip-right {
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+  }
+  .trip-km {
+    font-weight: 700;
+    font-size: 16px;
+    color: #111827;
+    font-variant-numeric: tabular-nums;
+  }
+  .trip-delete {
+    background: none;
+    border: none;
+    color: #dc2626;
+    width: auto;
+    padding: 2px 6px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  /* === Modals === */
+  .modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 100;
+  }
+  .modal-content {
+    background: #fff;
+    border-radius: 20px 20px 0 0;
+    padding: 24px 20px;
+    width: 100%;
+    max-width: 640px;
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+    animation: slideUp 0.2s ease-out;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+  }
+  .modal-content h2 { font-size: 20px; margin-bottom: 16px; }
+  .modal-content label {
+    display: block;
+    font-size: 14px;
+    color: #374151;
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+  .modal-content input {
+    width: 100%;
+    padding: 14px 16px;
+    font-size: 18px;
+    border: 2px solid #d1d5db;
+    border-radius: 10px;
+    font-family: inherit;
+  }
+  .modal-content input:focus { outline: none; border-color: #2563eb; }
+  .modal-summary {
+    background: #f9fafb;
+    padding: 14px 16px;
+    border-radius: 10px;
+    margin-bottom: 18px;
+    font-size: 15px;
+    color: #374151;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .modal-summary strong { color: #111827; font-variant-numeric: tabular-nums; }
+  .modal-buttons {
+    display: flex;
+    gap: 12px;
+    margin-top: 20px;
+  }
+  .modal-buttons button { flex: 1; }
+
+  /* === Print styles ===
+     Nur der Druckbereich wird angezeigt, alles andere ausgeblendet.
+     Enthält bewusst NUR Fahrtname + Kilometer — keine Koordinaten oder Routen. */
+  #print-area { display: none; }
+
+  @media print {
+    body { background: #fff; padding: 0; }
+    body.printing #app { display: none !important; }
+    body.printing #print-area { display: block !important; }
+    #print-area {
+      font-family: -apple-system, 'Segoe UI', Arial, sans-serif;
+      color: #000;
+      padding: 20px;
+    }
+    #print-area h1 { font-size: 20px; margin-bottom: 16px; }
+    #print-area table { width: 100%; border-collapse: collapse; }
+    #print-area th, #print-area td {
+      text-align: left;
+      padding: 8px 12px;
+      border-bottom: 1px solid #ccc;
+      font-size: 14px;
+    }
+    #print-area th { border-bottom: 2px solid #000; }
+    #print-area td.km, #print-area th.km { text-align: right; }
+    #print-area tfoot td {
+      border-top: 2px solid #000;
+      border-bottom: none;
+      font-weight: 700;
+      padding-top: 12px;
+    }
+  }
+
+  /* === Desktop tweaks === */
+  @media (min-width: 641px) {
+    .modal { align-items: center; }
+    .modal-content { border-radius: 20px; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>Fahrtenbuch</h1>
+  </header>
+
+  <!-- Startzustand -->
+  <main id="view-idle">
+    <button id="btn-start" class="btn-start">Fahrt starten</button>
+    <div id="error-banner" class="error-banner hidden"></div>
+    <section id="trips-section">
+      <h2>Fahrten</h2>
+      <div id="trips-list"></div>
+    </section>
+  </main>
+
+  <!-- Aktive Fahrt -->
+  <main id="view-active" class="hidden">
+    <div class="live-display">
+      <div class="live-km"><span id="live-km">0,00</span> <span class="live-km-unit">km</span></div>
+      <div class="live-time" id="live-time">00:00:00</div>
+      <div class="live-accuracy" id="live-accuracy"></div>
+    </div>
+    <div class="status-row">
+      <span id="status-text">GPS wird gesucht…</span>
+    </div>
+    <button id="btn-end" class="btn-end">Fahrt beenden</button>
+  </main>
+
+  <!-- End-Dialog -->
+  <div id="end-dialog" class="modal hidden">
+    <div class="modal-content">
+      <h2>Fahrt speichern</h2>
+      <div class="modal-summary">
+        <span>Distanz: <strong id="summary-km">0,00 km</strong></span>
+        <span>Dauer: <strong id="summary-duration">00:00:00</strong></span>
+      </div>
+      <label for="trip-name">Name der Fahrt</label>
+      <input type="text" id="trip-name" placeholder="z. B. Kundenbesuch Müller" autocomplete="off">
+      <div class="modal-buttons">
+        <button id="btn-discard" class="btn-secondary">Verwerfen</button>
+        <button id="btn-save" class="btn-primary">Speichern</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lösch-Dialog -->
+  <div id="delete-dialog" class="modal hidden">
+    <div class="modal-content">
+      <h2>Fahrt löschen?</h2>
+      <p id="delete-trip-name" style="margin-bottom:8px; font-weight:600;"></p>
+      <p style="color:#6b7280; font-size:14px;">Diese Aktion kann nicht rückgängig gemacht werden.</p>
+      <div class="modal-buttons">
+        <button id="btn-delete-cancel" class="btn-secondary">Abbrechen</button>
+        <button id="btn-delete-confirm" class="btn-danger">Löschen</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Druckbereich: nur im Druck sichtbar -->
+<div id="print-area"></div>
+
+<script>
+(function() {
+  'use strict';
+
+  // ===================================================================
+  // HTTPS-Hinweis:
+  // Geolocation und Wake Lock funktionieren NUR über HTTPS oder auf
+  // localhost. Zum lokalen Testen z. B. `python3 -m http.server` im
+  // Ordner der index.html starten und http://localhost:8000 öffnen.
+  // Fürs Handy: Datei auf einen statischen HTTPS-Host laden (GitHub
+  // Pages, Netlify Drop, Vercel, Cloudflare Pages o. ä.) oder per
+  // `npx serve --ssl-cert ... --ssl-key ...` lokal über HTTPS ausliefern.
+  // ===================================================================
+
+  var STORAGE_KEY = 'fahrtenbuch_trips_v1';
+  var RUNNING_KEY = 'fahrtenbuch_running_v1';
+  var ACCURACY_THRESHOLD = 25;   // Meter: schlechtere Positionen verwerfen
+  var MIN_STEP_METERS = 5;       // Meter: kleinste zählbare Bewegung
+
+  // Zustand — nur im Arbeitsspeicher (lastValidPoint wird NIEMALS persistiert)
+  var state = {
+    active: false,
+    tripId: null,
+    startTime: null,
+    distanceM: 0,
+    lastValidPoint: null,        // { lat, lon } — flüchtig, nur im RAM
+    watchId: null,
+    wakeLock: null,
+    timerInterval: null,
+    pendingDeleteId: null,
+  };
+
+  // DOM-Knoten
+  var el = {
+    viewIdle: document.getElementById('view-idle'),
+    viewActive: document.getElementById('view-active'),
+    btnStart: document.getElementById('btn-start'),
+    btnEnd: document.getElementById('btn-end'),
+    liveKm: document.getElementById('live-km'),
+    liveTime: document.getElementById('live-time'),
+    liveAccuracy: document.getElementById('live-accuracy'),
+    statusText: document.getElementById('status-text'),
+    errorBanner: document.getElementById('error-banner'),
+    tripsList: document.getElementById('trips-list'),
+    endDialog: document.getElementById('end-dialog'),
+    tripName: document.getElementById('trip-name'),
+    summaryKm: document.getElementById('summary-km'),
+    summaryDuration: document.getElementById('summary-duration'),
+    btnSave: document.getElementById('btn-save'),
+    btnDiscard: document.getElementById('btn-discard'),
+    deleteDialog: document.getElementById('delete-dialog'),
+    deleteTripName: document.getElementById('delete-trip-name'),
+    btnDeleteCancel: document.getElementById('btn-delete-cancel'),
+    btnDeleteConfirm: document.getElementById('btn-delete-confirm'),
+    printArea: document.getElementById('print-area'),
+  };
+
+  // === Haversine-Distanz in Metern ===
+  function haversine(lat1, lon1, lat2, lon2) {
+    var R = 6371000; // Erdradius in Metern
+    var toRad = function(deg) { return deg * Math.PI / 180; };
+    var dLat = toRad(lat2 - lat1);
+    var dLon = toRad(lon2 - lon1);
+    var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  // === Formatierung ===
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+  function formatKm(km) { return km.toFixed(2).replace('.', ',') + ' km'; }
+  function formatKmValue(km) { return km.toFixed(2).replace('.', ','); }
+  function formatDurationHMS(sec) {
+    sec = Math.floor(sec);
+    var h = Math.floor(sec / 3600);
+    var m = Math.floor((sec % 3600) / 60);
+    var s = sec % 60;
+    return pad2(h) + ':' + pad2(m) + ':' + pad2(s);
+  }
+  function formatDurationShort(sec) {
+    sec = Math.round(sec);
+    var h = Math.floor(sec / 3600);
+    var m = Math.round((sec % 3600) / 60);
+    if (h > 0) return h + ' h ' + pad2(m) + ' min';
+    return m + ' min';
+  }
+  function formatClock(iso) {
+    var d = new Date(iso);
+    return pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+  }
+  function formatDayLabel(dateStr) {
+    var p = dateStr.split('-');
+    var d = new Date(parseInt(p[0]), parseInt(p[1]) - 1, parseInt(p[2]));
+    return d.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  }
+  function defaultTripName() {
+    var d = new Date();
+    var dateStr = d.toLocaleDateString('de-DE', { day: 'numeric', month: 'numeric', year: 'numeric' });
+    var timeStr = pad2(d.getHours()) + ':' + pad2(d.getMinutes());
+    return 'Fahrt vom ' + dateStr + ' ' + timeStr;
+  }
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function(c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  // === localStorage ===
+  function loadTrips() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return [];
+      var arr = JSON.parse(raw);
+      return Array.isArray(arr) ? arr : [];
+    } catch (e) { return []; }
+  }
+  function saveTrips(trips) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(trips));
+  }
+  function loadRunning() {
+    try {
+      var raw = localStorage.getItem(RUNNING_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch (e) { return null; }
+  }
+  function saveRunning() {
+    // WICHTIG (Datenschutz): Hier werden bewusst KEINE Koordinaten gespeichert.
+    // Nur Trip-ID, Startzeit und aufsummierte Distanz — das reicht, um nach
+    // einem Reload die Fahrt fortzusetzen. Die nächste GPS-Position wird beim
+    // Wiederaufnehmen als neue Baseline gesetzt (ohne Distanzbeitrag).
+    var data = {
+      tripId: state.tripId,
+      startTime: state.startTime,
+      distanceM: state.distanceM
+    };
+    localStorage.setItem(RUNNING_KEY, JSON.stringify(data));
+  }
+  function clearRunning() { localStorage.removeItem(RUNNING_KEY); }
+
+  // === Fehler / Status ===
+  function showError(msg, critical) {
+    el.errorBanner.textContent = msg;
+    el.errorBanner.classList.remove('hidden');
+    if (critical) el.errorBanner.classList.add('critical');
+    else el.errorBanner.classList.remove('critical');
+  }
+  function clearError() {
+    el.errorBanner.classList.add('hidden');
+    el.errorBanner.textContent = '';
+  }
+
+  // === Wake Lock (Bildschirm an lassen) ===
+  async function requestWakeLock() {
+    if (!('wakeLock' in navigator)) return; // Fallback: API nicht verfügbar
+    try {
+      state.wakeLock = await navigator.wakeLock.request('screen');
+      state.wakeLock.addEventListener('release', function() {
+        state.wakeLock = null;
+      });
+    } catch (e) {
+      // Still er Fallback — App läuft auch ohne Wake Lock weiter
+      state.wakeLock = null;
+    }
+  }
+  async function releaseWakeLock() {
+    if (state.wakeLock) {
+      try { await state.wakeLock.release(); } catch (e) {}
+      state.wakeLock = null;
+    }
+  }
+  // Wake Lock geht beim Tab-Wechsel verloren — bei Rückkehr neu anfordern
+  document.addEventListener('visibilitychange', function() {
+    if (state.active && document.visibilityState === 'visible' && state.wakeLock === null) {
+      requestWakeLock();
+    }
+  });
+
+  // === GPS ===
+  function startWatch() {
+    if (!navigator.geolocation) {
+      showError('Dieses Gerät unterstützt keine Standortbestimmung (Geolocation).', true);
+      return false;
+    }
+    state.watchId = navigator.geolocation.watchPosition(
+      handlePosition,
+      handleError,
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 30000 }
+    );
+    return true;
+  }
+  function stopWatch() {
+    if (state.watchId !== null && navigator.geolocation) {
+      navigator.geolocation.clearWatch(state.watchId);
+      state.watchId = null;
+    }
+  }
+
+  function handlePosition(position) {
+    var acc = position.coords.accuracy;
+    updateAccuracyDisplay(acc);
+
+    // Genauigkeitsfilter: ungenaue Fixes ignorieren
+    if (acc > ACCURACY_THRESHOLD) {
+      el.statusText.textContent = 'GPS ungenau (±' + Math.round(acc) + ' m) — warte auf besseres Signal…';
+      return;
+    }
+
+    var lat = position.coords.latitude;
+    var lon = position.coords.longitude;
+
+    if (state.lastValidPoint === null) {
+      // Erster gültiger Punkt = Baseline, noch kein Distanzbeitrag
+      state.lastValidPoint = { lat: lat, lon: lon };
+      el.statusText.textContent = 'GPS aktiv — bereit';
+      return;
+    }
+
+    var d = haversine(state.lastValidPoint.lat, state.lastValidPoint.lon, lat, lon);
+
+    // Mikro-Bewegungsfilter: < 5 m zählt nicht (verhindert Drift im Stand)
+    if (d < MIN_STEP_METERS) return;
+
+    state.distanceM += d;
+    state.lastValidPoint = { lat: lat, lon: lon };
+    el.statusText.textContent = 'Aufzeichnung läuft';
+
+    // Laufende Distanz persistieren (Reload-Schutz) — ohne Koordinaten
+    saveRunning();
+    updateLiveDisplay();
+  }
+
+  function handleError(err) {
+    var msg;
+    if (err.code === err.PERMISSION_DENIED) {
+      msg = 'GPS-Berechtigung abgelehnt. Bitte erlaube den Standortzugriff in den Browser-/Geräteeinstellungen und starte die Fahrt erneut.';
+      showError(msg, true);
+    } else if (err.code === err.POSITION_UNAVAILABLE) {
+      msg = 'Standort nicht verfügbar. Ist GPS am Gerät aktiviert?';
+      showError(msg, false);
+    } else if (err.code === err.TIMEOUT) {
+      // Timeout ist nicht kritisch — watchPosition läuft weiter
+      return;
+    } else {
+      msg = 'Unbekannter GPS-Fehler: ' + err.message;
+      showError(msg, false);
+    }
+    el.statusText.textContent = 'GPS-Fehler';
+  }
+
+  function updateAccuracyDisplay(acc) {
+    if (acc <= 10) {
+      el.liveAccuracy.textContent = 'GPS-Genauigkeit: ±' + Math.round(acc) + ' m (sehr gut)';
+      el.liveAccuracy.className = 'live-accuracy good';
+    } else if (acc <= 25) {
+      el.liveAccuracy.textContent = 'GPS-Genauigkeit: ±' + Math.round(acc) + ' m';
+      el.liveAccuracy.className = 'live-accuracy';
+    } else {
+      el.liveAccuracy.textContent = 'GPS-Genauigkeit: ±' + Math.round(acc) + ' m (ungenau, wird ignoriert)';
+      el.liveAccuracy.className = 'live-accuracy warn';
+    }
+  }
+
+  function updateLiveDisplay() {
+    var km = state.distanceM / 1000;
+    el.liveKm.textContent = formatKmValue(km);
+    if (state.startTime) {
+      var elapsed = (Date.now() - new Date(state.startTime).getTime()) / 1000;
+      el.liveTime.textContent = formatDurationHMS(elapsed);
+    }
+  }
+
+  // === Views ===
+  function showIdle() {
+    el.viewIdle.classList.remove('hidden');
+    el.viewActive.classList.add('hidden');
+  }
+  function showActive() {
+    el.viewIdle.classList.add('hidden');
+    el.viewActive.classList.remove('hidden');
+  }
+
+  // === Fahrt starten ===
+  function startTrip() {
+    clearError();
+    state.active = true;
+    state.tripId = 'trip-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+    state.startTime = new Date().toISOString();
+    state.distanceM = 0;
+    state.lastValidPoint = null;
+
+    saveRunning();
+    showActive();
+    updateLiveDisplay();
+    el.statusText.textContent = 'GPS wird gesucht…';
+    el.liveAccuracy.textContent = '';
+    el.liveAccuracy.className = 'live-accuracy';
+
+    var ok = startWatch();
+    if (!ok) {
+      // Kein Geolocation → Fahrt abbrechen
+      resetActiveState();
+      showIdle();
+      return;
+    }
+
+    requestWakeLock();
+    startTimer();
+  }
+
+  function startTimer() {
+    stopTimer();
+    state.timerInterval = setInterval(updateLiveDisplay, 1000);
+  }
+  function stopTimer() {
+    if (state.timerInterval) {
+      clearInterval(state.timerInterval);
+      state.timerInterval = null;
+    }
+  }
+
+  // === Fahrt beenden → Dialog ===
+  function endTrip() {
+    stopWatch();
+    stopTimer();
+    releaseWakeLock();
+
+    var km = state.distanceM / 1000;
+    var duration = state.startTime ? (Date.now() - new Date(state.startTime).getTime()) / 1000 : 0;
+
+    el.summaryKm.textContent = formatKm(km);
+    el.summaryDuration.textContent = formatDurationHMS(duration);
+    el.tripName.value = '';
+    el.tripName.placeholder = defaultTripName();
+
+    el.endDialog.classList.remove('hidden');
+    setTimeout(function() { el.tripName.focus(); }, 100);
+  }
+
+  // === Speichern ===
+  function saveTrip() {
+    var name = el.tripName.value.trim();
+    if (!name) name = defaultTripName();
+
+    var endTime = new Date().toISOString();
+    var durationSec = state.startTime
+      ? Math.round((new Date(endTime).getTime() - new Date(state.startTime).getTime()) / 1000)
+      : 0;
+
+    var trip = {
+      id: state.tripId,
+      name: name,
+      startTime: state.startTime,
+      endTime: endTime,
+      distanceKm: Math.round((state.distanceM / 1000) * 100) / 100,
+      durationSec: durationSec
+    };
+
+    var trips = loadTrips();
+    trips.push(trip);
+    saveTrips(trips);
+
+    resetActiveState();
+    el.endDialog.classList.add('hidden');
+    showIdle();
+    renderTrips();
+  }
+
+  // === Verwerfen ===
+  function discardTrip() {
+    resetActiveState();
+    el.endDialog.classList.add('hidden');
+    showIdle();
+    renderTrips();
+  }
+
+  function resetActiveState() {
+    state.active = false;
+    state.tripId = null;
+    state.startTime = null;
+    state.distanceM = 0;
+    state.lastValidPoint = null;
+    clearRunning();
+  }
+
+  // === Löschen ===
+  function requestDelete(id) {
+    var trips = loadTrips();
+    var trip = trips.filter(function(t) { return t.id === id; })[0];
+    if (!trip) return;
+    state.pendingDeleteId = id;
+    el.deleteTripName.textContent = trip.name;
+    el.deleteDialog.classList.remove('hidden');
+  }
+  function cancelDelete() {
+    state.pendingDeleteId = null;
+    el.deleteDialog.classList.add('hidden');
+  }
+  function confirmDelete() {
+    if (!state.pendingDeleteId) return;
+    var trips = loadTrips().filter(function(t) { return t.id !== state.pendingDeleteId; });
+    saveTrips(trips);
+    state.pendingDeleteId = null;
+    el.deleteDialog.classList.add('hidden');
+    renderTrips();
+  }
+
+  // === Fahrtenliste rendern (tagesgruppiert) ===
+  function renderTrips() {
+    var trips = loadTrips();
+    if (trips.length === 0) {
+      el.tripsList.innerHTML =
+        '<div class="empty-state">Noch keine Fahrten aufgezeichnet. Drücke „Fahrt starten", um loszulegen.</div>';
+      return;
+    }
+
+    // Nach Tag gruppieren (YYYY-MM-DD aus startTime)
+    var groups = {};
+    trips.forEach(function(t) {
+      var day = t.startTime.slice(0, 10);
+      if (!groups[day]) groups[day] = [];
+      groups[day].push(t);
+    });
+
+    // Tage absteigend (neuester oben)
+    var days = Object.keys(groups).sort(function(a, b) { return a < b ? 1 : -1; });
+
+    var html = '';
+    days.forEach(function(day) {
+      var dayTrips = groups[day].sort(function(a, b) {
+        return new Date(a.startTime).getTime() - new Date(b.startTime).getTime();
+      });
+      var dayTotal = dayTrips.reduce(function(sum, t) { return sum + t.distanceKm; }, 0);
+
+      html += '<div class="day-group" data-day="' + day + '">';
+      html += '<div class="day-header">';
+      html += '<div class="day-header-row">';
+      html += '<div class="day-date">' + formatDayLabel(day) + '</div>';
+      html += '<div class="day-total">Gesamt: ' + formatKm(dayTotal) + '</div>';
+      html += '</div>';
+      html += '<button class="btn-export" data-export-day="' + day + '">Als PDF exportieren / drucken</button>';
+      html += '</div>';
+
+      dayTrips.forEach(function(t) {
+        var dur = t.durationSec || 0;
+        html += '<div class="trip-item">';
+        html += '<div class="trip-info">';
+        html += '<div class="trip-name">' + escapeHtml(t.name) + '</div>';
+        html += '<div class="trip-meta">' + formatClock(t.startTime) + '–' + formatClock(t.endTime) + ' · ' + formatDurationShort(dur) + '</div>';
+        html += '</div>';
+        html += '<div class="trip-right">';
+        html += '<div class="trip-km">' + formatKm(t.distanceKm) + '</div>';
+        html += '<button class="trip-delete" data-delete-id="' + t.id + '">Löschen</button>';
+        html += '</div>';
+        html += '</div>';
+      });
+
+      html += '</div>';
+    });
+
+    el.tripsList.innerHTML = html;
+  }
+
+  // === Druck-/PDF-Export pro Tag ===
+  // Zeigt NUR Fahrtname + Kilometer + Tages-Summe. Keine Koordinaten, keine Routen.
+  function exportDay(dayStr) {
+    var trips = loadTrips()
+      .filter(function(t) { return t.startTime.slice(0, 10) === dayStr; })
+      .sort(function(a, b) { return new Date(a.startTime).getTime() - new Date(b.startTime).getTime(); });
+
+    if (trips.length === 0) return;
+
+    var total = trips.reduce(function(sum, t) { return sum + t.distanceKm; }, 0);
+
+    var html = '<h1>Fahrtenbuch — ' + formatDayLabel(dayStr) + '</h1>';
+    html += '<table>';
+    html += '<thead><tr><th>Name der Fahrt</th><th class="km">Kilometer</th></tr></thead>';
+    html += '<tbody>';
+    trips.forEach(function(t) {
+      html += '<tr><td>' + escapeHtml(t.name) + '</td><td class="km">' + formatKm(t.distanceKm) + '</td></tr>';
+    });
+    html += '</tbody>';
+    html += '<tfoot><tr><td>Gesamt</td><td class="km">' + formatKm(total) + '</td></tr></tfoot>';
+    html += '</table>';
+
+    el.printArea.innerHTML = html;
+    document.body.classList.add('printing');
+
+    var cleanup = function() {
+      document.body.classList.remove('printing');
+      el.printArea.innerHTML = '';
+      window.removeEventListener('afterprint', cleanup);
+    };
+    window.addEventListener('afterprint', cleanup);
+
+    // Kurz warten, damit Browser das Druck-Layout rendern kann
+    setTimeout(function() { window.print(); }, 50);
+
+    // Sicherheits-Fallback falls afterprint nicht feuert
+    setTimeout(function() {
+      if (document.body.classList.contains('printing')) cleanup();
+    }, 60000);
+  }
+
+  // === Laufende Fahrt nach Reload wiederherstellen ===
+  function restoreRunning() {
+    var r = loadRunning();
+    if (!r || !r.tripId || !r.startTime) return false;
+
+    state.active = true;
+    state.tripId = r.tripId;
+    state.startTime = r.startTime;
+    state.distanceM = r.distanceM || 0;
+    state.lastValidPoint = null; // Bewusst null — keine Koordinaten gespeichert
+
+    showActive();
+    updateLiveDisplay();
+    el.statusText.textContent = 'GPS wird gesucht…';
+    el.liveAccuracy.textContent = '';
+    el.liveAccuracy.className = 'live-accuracy';
+
+    if (!startWatch()) {
+      showError('GPS nicht verfügbar. Die laufende Fahrt wurde wiederhergestellt, aber es werden derzeit keine neuen Kilometer aufgezeichnet.', false);
+    }
+
+    requestWakeLock();
+    startTimer();
+    return true;
+  }
+
+  // === Events ===
+  el.btnStart.addEventListener('click', startTrip);
+  el.btnEnd.addEventListener('click', endTrip);
+  el.btnSave.addEventListener('click', saveTrip);
+  el.btnDiscard.addEventListener('click', discardTrip);
+  el.btnDeleteCancel.addEventListener('click', cancelDelete);
+  el.btnDeleteConfirm.addEventListener('click', confirmDelete);
+
+  // Enter im Namensfeld = Speichern
+  el.tripName.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') { e.preventDefault(); saveTrip(); }
+  });
+
+  // Klick-Delegation für Liste (Löschen + Export)
+  el.tripsList.addEventListener('click', function(e) {
+    var t = e.target;
+    var delId = t.getAttribute && t.getAttribute('data-delete-id');
+    var expDay = t.getAttribute && t.getAttribute('data-export-day');
+    if (delId) { e.preventDefault(); requestDelete(delId); }
+    else if (expDay) { e.preventDefault(); exportDay(expDay); }
+  });
+
+  // === Init ===
+  if (!restoreRunning()) {
+    showIdle();
+  }
+  renderTrips();
+})();
+</script>
+</body>
+</html>
