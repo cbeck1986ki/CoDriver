@@ -23,6 +23,7 @@
 
 
 
+
   /* === Reset & Base === */
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; }
@@ -1092,6 +1093,131 @@
     color: #166534;
     word-break: break-all;
   }
+  /* === File Setup Dialog === */
+  .file-setup-icon { font-size: 56px; text-align: center; margin-bottom: 8px; }
+  .file-setup-actions { display: flex; flex-direction: column; gap: 12px; }
+  .file-setup-actions button {
+    padding: 16px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 12px;
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .file-setup-actions .btn-icon { font-size: 24px; flex-shrink: 0; }
+  .file-setup-actions .btn-text { display: flex; flex-direction: column; }
+  .file-setup-actions .btn-text small { font-weight: 400; font-size: 12px; color: #6b7280; margin-top: 2px; }
+
+  /* === Unsaved Changes Dot === */
+  .save-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #f59e0b;
+    margin-right: 4px;
+    animation: pulse-dot 1.5s ease-in-out infinite;
+    vertical-align: middle;
+  }
+  .save-indicator.hidden { display: none; }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* === File Info in Storage Dialog === */
+  .storage-file-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 10px;
+    margin-bottom: 16px;
+    font-size: 14px;
+  }
+  .storage-file-info span { color: #374151; }
+  .storage-file-info strong { color: #166534; word-break: break-all; text-align: right; }
+  .storage-file-info.no-file { background: #fef3c7; border-color: #fde68a; }
+  .storage-file-info.no-file strong { color: #92400e; }
+
+  /* === Save Toast === */
+  .save-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #166534;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  .save-toast.show { opacity: 1; }
+
+  /* === Storage actions column layout === */
+  .storage-actions { display: flex; flex-direction: column; gap: 10px; }
+  .storage-actions .btn-primary,
+  .storage-actions .btn-secondary,
+  .storage-actions .btn-danger {
+    width: 100%;
+    text-align: center;
+  }
+
+  /* === Dropdown Menu === */
+  .dropdown { position: relative; }
+  .dropdown-content {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 220px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+    z-index: 500;
+    overflow: hidden;
+  }
+  .dropdown-content.hidden { display: none; }
+  .dropdown-content button {
+    display: block;
+    width: 100%;
+    padding: 14px 16px;
+    border: none;
+    background: none;
+    font-size: 15px;
+    font-family: inherit;
+    color: #1f2937;
+    text-align: left;
+    cursor: pointer;
+  }
+  .dropdown-content button:hover { background: #f3f4f6; }
+  .dropdown-separator {
+    height: 1px;
+    background: #e5e7eb;
+    margin: 4px 0;
+  }
+  .dropdown-file-info {
+    padding: 12px 16px;
+    font-size: 12px;
+    color: #6b7280;
+    line-height: 1.4;
+  }
+  .dropdown-file-info span { display: block; margin-bottom: 2px; }
+  .dropdown-file-info strong {
+    display: block;
+    font-size: 13px;
+    color: #166534;
+    word-break: break-all;
+  }
 
 </style>
 </head>
@@ -1126,6 +1252,10 @@
         Wähle einen Speicherort für deine Fahrtenbuch-Daten auf diesem Gerät.<br>
         Deine Daten bleiben nur auf deinem Gerät — der Browserspeicher bleibt sauber.
       </p>
+      <p id="file-setup-hint-safari" class="hint" style="display:none; text-align:center; margin-bottom:16px; color:#6b7280; font-size:13px;">
+        Auf diesem Gerät werden deine Daten automatisch im Browser gespeichert.
+        Du kannst sie jederzeit als Datei sichern (im Menü unter „Daten“).
+      </p>
       <div class="file-setup-actions">
         <button id="btn-new-file" class="btn-primary" style="width:100%;">
           <span class="btn-icon">📅</span>
@@ -1139,8 +1269,8 @@
       <!-- Hidden file input for Safari fallback -->
       <input type="file" id="file-input" accept=".json,application/json" style="display:none">
       <p class="hint" style="margin-top:16px; text-align:center;">
-        Nach einem Browser-Reset kannst du deine bestehende Datei einfach erneut auswählen —
-        alle Fahrten sind dann wieder da.
+        Auf Chrome/Android: Nach einem Browser-Reset wähle deine Datei einfach erneut aus.<br>
+        Auf Safari/iOS: Daten bleiben automatisch im Browser erhalten.
       </p>
     </div>
   </div>
@@ -1284,8 +1414,8 @@
         <button id="btn-clear-data" class="btn-danger">Alle Fahrten löschen</button>
       </div>
       <div class="hint" style="margin-top:12px;">
-        Auf Geräten mit Chrome/Edge werden Änderungen automatisch in die Datei geschrieben.
-        Auf Safari/iOS musst du manuell speichern.
+        Auf Chrome/Android werden Änderungen automatisch in die Datei geschrieben.<br>
+        Auf Safari/iOS werden Änderungen automatisch im Browser gespeichert.
       </div>
       <div class="modal-buttons" style="margin-top: 20px;">
         <button id="btn-storage-close" class="btn-secondary">Schließen</button>
@@ -1368,6 +1498,11 @@
   var FILE_HANDLE_DB = 'CoDriverFileHandle';
   var FILE_HANDLE_STORE = 'handles';
   var FILE_HANDLE_KEY = 'main';
+
+  // IndexedDB App-Daten (primärer Speicher auf Safari/iOS)
+  var APP_DATA_DB = 'CoDriverAppData';
+  var APP_DATA_STORE = 'appdata';
+  var APP_DATA_KEY = 'main';
 
   // App-Zustand (nur RAM)
   var state = {
@@ -1459,7 +1594,7 @@
   };
 
   // ====================================================================
-  // DATEI-SPEICHER
+  // DATEI-SPEICHER (Chrome/Edge/Android — File System Access API)
   // ====================================================================
 
   function openHandleDB() {
@@ -1505,6 +1640,66 @@
       });
     });
   }
+
+  // ====================================================================
+  // INDEXEDDB APP-DATEN (Safari/iOS — primärer Speicher)
+  // ====================================================================
+
+  function openAppDataDB() {
+    return new Promise(function(resolve, reject) {
+      var req = indexedDB.open(APP_DATA_DB, 1);
+      req.onupgradeneeded = function(e) {
+        e.target.result.createObjectStore(APP_DATA_STORE);
+      };
+      req.onsuccess = function(e) { resolve(e.target.result); };
+      req.onerror = function(e) { reject(e.target.error); };
+    });
+  }
+
+  function saveAppDataToIDB() {
+    return openAppDataDB().then(function(db) {
+      return new Promise(function(resolve, reject) {
+        var tx = db.transaction(APP_DATA_STORE, 'readwrite');
+        tx.objectStore(APP_DATA_STORE).put(JSON.stringify(appData), APP_DATA_KEY);
+        tx.oncomplete = function() { resolve(); };
+        tx.onerror = function(e) { reject(e.target.error); };
+      });
+    });
+  }
+
+  function loadAppDataFromIDB() {
+    return openAppDataDB().then(function(db) {
+      return new Promise(function(resolve, reject) {
+        var tx = db.transaction(APP_DATA_STORE, 'readonly');
+        var req = tx.objectStore(APP_DATA_STORE).get(APP_DATA_KEY);
+        req.onsuccess = function() {
+          var json = req.result;
+          if (json) {
+            var data = parseAppData(json);
+            resolve(data);
+          } else {
+            resolve(null);
+          }
+        };
+        req.onerror = function(e) { reject(e.target.error); };
+      });
+    });
+  }
+
+  function clearAppDataIDB() {
+    return openAppDataDB().then(function(db) {
+      return new Promise(function(resolve, reject) {
+        var tx = db.transaction(APP_DATA_STORE, 'readwrite');
+        tx.objectStore(APP_DATA_STORE).delete(APP_DATA_KEY);
+        tx.oncomplete = function() { resolve(); };
+        tx.onerror = function(e) { reject(e.target.error); };
+      });
+    });
+  }
+
+  // ====================================================================
+  // DATEI-HILFSFUNKTIONEN
+  // ====================================================================
 
   function emptyAppData() {
     return { version: 2, trips: [], vehicles: [], addresses: { home: '', work: '' } };
@@ -1603,10 +1798,10 @@
       }
     }
 
-    // Safari-Fallback
+    // Safari-Fallback: Leere Daten anlegen und in IndexedDB speichern
     appData = emptyAppData();
-    fileName = 'CoDriver_Fahrtenbuch.json';
-    await writeToFile();
+    fileName = 'CoDriver_Fahrtenbuch';
+    try { await saveAppDataToIDB(); } catch(e) { console.warn('IDB save:', e); }
     onFileConnected();
     return true;
   }
@@ -1640,7 +1835,7 @@
       }
     }
 
-    // Safari-Fallback: File Input
+    // Safari-Fallback: File Input → Daten in IndexedDB übernehmen
     return new Promise(function(resolve) {
       el.fileInput.onchange = async function(e) {
         var file = e.target.files[0];
@@ -1656,6 +1851,8 @@
           fileHandle = null;
           fileName = file.name;
           appData = data;
+          // Daten in IndexedDB speichern für persistence
+          try { await saveAppDataToIDB(); } catch(idbErr) { console.warn('IDB save:', idbErr); }
           onFileConnected();
           resolve(true);
         } catch (err) {
@@ -1738,6 +1935,16 @@
   }
 
   function showFileSetup() {
+    // Safari-spezifische Anpassungen
+    var safariHint = document.getElementById('file-setup-hint-safari');
+    if (!isFileSystemAPI && safariHint) {
+      safariHint.style.display = '';
+      // Button-Text für Safari anpassen
+      var newText = el.btnNewFile.querySelector('.btn-text');
+      if (newText) newText.innerHTML = 'Neues Fahrtenbuch erstellen<small>Daten im Browser speichern</small>';
+      var loadText = el.btnLoadFile.querySelector('.btn-text');
+      if (loadText) loadText.innerHTML = 'Aus Backup wiederherstellen<small>Vorher gesicherte JSON-Datei laden</small>';
+    }
     el.fileSetupDialog.classList.remove('hidden');
     el.viewIdle.classList.add('hidden');
     el.viewActive.classList.add('hidden');
@@ -1748,6 +1955,9 @@
   }
 
   function updateSaveIndicator() {
+    // Safari mit IndexedDB: Indicator wird kurz gezeigt, dann sofort versteckt
+    // (Daten sind ja sofort gespeichert)
+    // Safari ohne IndexedDB (nur Download): Indicator bleibt stehen
     if (hasUnsavedChanges && !isFileSystemAPI) {
       el.saveIndicator.classList.remove('hidden');
     } else {
@@ -1759,8 +1969,18 @@
     hasUnsavedChanges = true;
     updateSaveIndicator();
     if (isFileSystemAPI && fileHandle) {
+      // Chrome/Edge: Direkt in die Datei schreiben
       writeToFile().catch(function(e) {
         console.warn('Auto-Save fehlgeschlagen:', e);
+      });
+    }
+    if (!isFileSystemAPI) {
+      // Safari/iOS: In IndexedDB speichern (sofort, automatisch)
+      saveAppDataToIDB().then(function() {
+        hasUnsavedChanges = false;
+        updateSaveIndicator();
+      }).catch(function(e) {
+        console.warn('IndexedDB Save fehlgeschlagen:', e);
       });
     }
   }
@@ -2255,19 +2475,29 @@
   // SPEICHER-MANAGER
   // ====================================================================
   function openStorageManager() {
-    if (fileName) {
-      el.storageFileName.textContent = fileName;
-      el.storageFileInfo.classList.remove('no-file');
-    } else {
-      el.storageFileName.textContent = 'Keine Datei verbunden';
-      el.storageFileInfo.classList.add('no-file');
-    }
-    if (!isFileSystemAPI) {
-      el.btnSaveFile.textContent = hasUnsavedChanges
-        ? '💾 Daten jetzt speichern!'
-        : '💾 Daten in Datei speichern';
-    } else {
+    if (isFileSystemAPI) {
+      // Chrome/Edge: Dateibasierte Ansicht
+      el.storageFileInfo.querySelector('span').textContent = 'Aktuelle Datei:';
+      if (fileName) {
+        el.storageFileName.textContent = fileName;
+        el.storageFileInfo.classList.remove('no-file');
+      } else {
+        el.storageFileName.textContent = 'Keine Datei verbunden';
+        el.storageFileInfo.classList.add('no-file');
+      }
       el.btnSaveFile.textContent = '💾 Daten in Datei speichern';
+      el.btnSaveFile.style.display = '';
+      el.btnSwitchFile.textContent = '🔄 Andere Datei wählen';
+      el.btnSwitchFile.style.display = '';
+    } else {
+      // Safari/iOS: IndexedDB-basierte Ansicht
+      el.storageFileInfo.querySelector('span').textContent = 'Speicherort:';
+      el.storageFileName.textContent = 'Browser-Speicher (automatisch gesichert)';
+      el.storageFileInfo.classList.remove('no-file');
+      el.btnSaveFile.textContent = '💾 Fahrtenbuch sichern (JSON-Datei)';
+      el.btnSaveFile.style.display = '';
+      el.btnSwitchFile.textContent = '📂 Backup wiederherstellen';
+      el.btnSwitchFile.style.display = '';
     }
     el.storageDialog.classList.remove('hidden');
   }
@@ -2666,16 +2896,37 @@
   el.btnStorage.addEventListener('click', openStorageManager);
   el.btnStorageClose.addEventListener('click', closeStorageManager);
   el.btnSaveFile.addEventListener('click', async function() {
-    await writeToFile();
-    showToast('Daten gespeichert!');
-    openStorageManager();
+    if (isFileSystemAPI) {
+      // Chrome/Edge: In Datei schreiben
+      await writeToFile();
+      showToast('Daten gespeichert!');
+      openStorageManager();
+    } else {
+      // Safari/iOS: JSON-Datei herunterladen (Sicherung)
+      var json = serializeAppData();
+      downloadJSON(json);
+      showToast('Fahrtenbuch als Datei gesichert!');
+    }
   });
   el.btnSwitchFile.addEventListener('click', async function() {
-    closeStorageManager();
-    fileHandle = null;
-    fileName = '';
-    try { await clearFileHandle(); } catch(e) {}
-    showFileSetup();
+    if (isFileSystemAPI) {
+      // Chrome/Edge: Andere Datei wählen
+      closeStorageManager();
+      fileHandle = null;
+      fileName = '';
+      try { await clearFileHandle(); } catch(e) {}
+      showFileSetup();
+    } else {
+      // Safari/iOS: Backup wiederherstellen
+      var ok = await loadExistingFile();
+      if (ok) {
+        closeStorageManager();
+        showToast('Fahrtenbuch wiederhergestellt!');
+        refreshVehicleSelect();
+        refreshQuickPickButtons();
+        renderTrips();
+      }
+    }
   });
   el.btnExportAll.addEventListener('click', exportAllTrips);
   el.btnClearData.addEventListener('click', openClearDialog);
@@ -2718,17 +2969,37 @@
   // INIT
   // ====================================================================
   (async function() {
-    // Zuerst versuchen, die Datei automatisch wieder zu verbinden
-    var reconnected = await tryReconnect();
-
-    if (reconnected) {
-      // onFileConnected() hat bereits die richtige Ansicht angezeigt
-      // Nur eine laufende Fahrt aus localStorage wiederherstellen
-      if (!state.active) {
-        restoreRunning();
+    if (isFileSystemAPI) {
+      // Chrome/Edge/Android: Dateibasiert mit Auto-Reconnect
+      var reconnected = await tryReconnect();
+      if (reconnected) {
+        // onFileConnected() hat bereits die richtige Ansicht angezeigt
+        if (!state.active) {
+          restoreRunning();
+        }
+      } else {
+        showFileSetup();
       }
     } else {
-      showFileSetup();
+      // Safari/iOS: IndexedDB-basiert — Daten automatisch wiederherstellen
+      var loaded = false;
+      try {
+        var idbData = await loadAppDataFromIDB();
+        if (idbData) {
+          appData = idbData;
+          fileName = 'Browser-Speicher';
+          onFileConnected();
+          if (!state.active) {
+            restoreRunning();
+          }
+          loaded = true;
+        }
+      } catch (e) {
+        console.warn('IndexedDB Laden fehlgeschlagen:', e);
+      }
+      if (!loaded) {
+        showFileSetup();
+      }
     }
   })();
 
