@@ -20,6 +20,8 @@
 <style>
 
 
+
+
   /* === Reset & Base === */
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; }
@@ -426,84 +428,8 @@
     margin-bottom: 12px;
   }
   .trips-header-row h2 { margin: 0; }
-  .storage-indicator {
-    font-size: 12px;
-    color: #6b7280;
-    font-variant-numeric: tabular-nums;
-    background: #f3f4f6;
-    padding: 4px 10px;
-    border-radius: 12px;
-  }
-  .storage-indicator.warn { color: #d97706; background: #fef3c7; font-weight: 600; }
-  .storage-indicator.critical { color: #dc2626; background: #fee2e2; font-weight: 700; }
-
-  .storage-banner {
-    background: #fef3c7;
-    border: 1px solid #f59e0b;
-    color: #92400e;
-    padding: 12px 16px;
-    border-radius: 10px;
-    margin-bottom: 16px;
-    font-size: 14px;
-  }
-  .storage-banner.critical {
-    background: #fee2e2;
-    border-color: #dc2626;
-    color: #991b1b;
-  }
-  .storage-banner strong { font-weight: 700; }
-  .storage-banner-actions {
-    display: flex;
-    gap: 8px;
-    margin-top: 10px;
-    flex-wrap: wrap;
-  }
-  .storage-banner-actions button {
-    width: auto;
-    flex: 1;
-    min-width: 140px;
-    padding: 10px 14px;
-    font-size: 14px;
-    border-radius: 8px;
-  }
 
   /* Storage manager modal */
-  .storage-progress {
-    height: 10px;
-    background: #e5e7eb;
-    border-radius: 5px;
-    overflow: hidden;
-    margin: 12px 0 4px;
-  }
-  .storage-progress-bar {
-    height: 100%;
-    background: #16a34a;
-    transition: width 0.3s, background 0.3s;
-  }
-  .storage-progress-bar.warn { background: #f59e0b; }
-  .storage-progress-bar.critical { background: #dc2626; }
-  .storage-stats {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 14px;
-    color: #374151;
-  }
-  .storage-stats strong { font-weight: 700; font-variant-numeric: tabular-nums; font-size: 16px; }
-
-  /* Type-to-confirm input */
-  .confirm-input {
-    width: 100%;
-    padding: 12px 14px;
-    font-size: 16px;
-    border: 2px solid #dc2626;
-    border-radius: 10px;
-    font-family: inherit;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    text-align: center;
-    margin-top: 8px;
-  }
   .confirm-input:focus { outline: none; border-color: #991b1b; }
 
   /* Storage manager action buttons (stacked, not side-by-side) */
@@ -681,31 +607,6 @@
   .file-setup-actions .btn-text small { font-weight: 400; font-size: 12px; color: #6b7280; margin-top: 2px; }
 
   /* === File Indicator in Header === */
-  .file-indicator {
-    font-size: 11px;
-    background: rgba(255,255,255,0.12);
-    color: rgba(255,255,255,0.85);
-    padding: 4px 8px;
-    border-radius: 6px;
-    max-width: 120px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    cursor: default;
-  }
-  .file-indicator.hidden { display: none; }
-
-  /* === Unsaved Changes Dot === */
-  .save-indicator {
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #f59e0b;
-    margin-right: 4px;
-    animation: pulse-dot 1.5s ease-in-out infinite;
-    vertical-align: middle;
-  }
   .save-indicator.hidden { display: none; }
   @keyframes pulse-dot {
     0%, 100% { opacity: 1; }
@@ -775,19 +676,188 @@
   .file-setup-actions .btn-text small { font-weight: 400; font-size: 12px; color: #6b7280; margin-top: 2px; }
 
   /* === File Indicator in Header === */
-  .file-indicator {
-    font-size: 11px;
-    background: rgba(255,255,255,0.12);
-    color: rgba(255,255,255,0.85);
-    padding: 4px 8px;
-    border-radius: 6px;
-    max-width: 120px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    cursor: default;
+  .save-indicator.hidden { display: none; }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
   }
-  .file-indicator.hidden { display: none; }
+
+  /* === File Info in Storage Dialog === */
+  .storage-file-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 10px;
+    margin-bottom: 16px;
+    font-size: 14px;
+  }
+  .storage-file-info span { color: #374151; }
+  .storage-file-info strong { color: #166534; word-break: break-all; text-align: right; }
+  .storage-file-info.no-file { background: #fef3c7; border-color: #fde68a; }
+  .storage-file-info.no-file strong { color: #92400e; }
+
+  /* === Save Toast === */
+  .save-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #166534;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  .save-toast.show { opacity: 1; }
+
+  /* === Storage actions column layout === */
+  .storage-actions { display: flex; flex-direction: column; gap: 10px; }
+  .storage-actions .btn-primary,
+  .storage-actions .btn-secondary,
+  .storage-actions .btn-danger {
+    width: 100%;
+    text-align: center;
+  }
+  /* === File Setup Dialog === */
+  .file-setup-icon { font-size: 56px; text-align: center; margin-bottom: 8px; }
+  .file-setup-actions { display: flex; flex-direction: column; gap: 12px; }
+  .file-setup-actions button {
+    padding: 16px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 12px;
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .file-setup-actions .btn-icon { font-size: 24px; flex-shrink: 0; }
+  .file-setup-actions .btn-text { display: flex; flex-direction: column; }
+  .file-setup-actions .btn-text small { font-weight: 400; font-size: 12px; color: #6b7280; margin-top: 2px; }
+
+  /* === File Indicator in Header === */
+  .save-indicator.hidden { display: none; }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* === File Info in Storage Dialog === */
+  .storage-file-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 10px;
+    margin-bottom: 16px;
+    font-size: 14px;
+  }
+  .storage-file-info span { color: #374151; }
+  .storage-file-info strong { color: #166534; word-break: break-all; text-align: right; }
+  .storage-file-info.no-file { background: #fef3c7; border-color: #fde68a; }
+  .storage-file-info.no-file strong { color: #92400e; }
+
+  /* === Save Toast === */
+  .save-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #166534;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  .save-toast.show { opacity: 1; }
+
+  /* === Storage actions column layout === */
+  .storage-actions { display: flex; flex-direction: column; gap: 10px; }
+  .storage-actions .btn-primary,
+  .storage-actions .btn-secondary,
+  .storage-actions .btn-danger {
+    width: 100%;
+    text-align: center;
+  }
+
+  /* === Dropdown Menu === */
+  .dropdown { position: relative; }
+  .dropdown-content {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 220px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+    z-index: 500;
+    overflow: hidden;
+  }
+  .dropdown-content.hidden { display: none; }
+  .dropdown-content button {
+    display: block;
+    width: 100%;
+    padding: 14px 16px;
+    border: none;
+    background: none;
+    font-size: 15px;
+    font-family: inherit;
+    color: #1f2937;
+    text-align: left;
+    cursor: pointer;
+  }
+  .dropdown-content button:hover { background: #f3f4f6; }
+  .dropdown-separator {
+    height: 1px;
+    background: #e5e7eb;
+    margin: 4px 0;
+  }
+  .dropdown-file-info {
+    padding: 12px 16px;
+    font-size: 12px;
+    color: #6b7280;
+    line-height: 1.4;
+  }
+  .dropdown-file-info span { display: block; margin-bottom: 2px; }
+  .dropdown-file-info strong {
+    display: block;
+    font-size: 13px;
+    color: #166534;
+    word-break: break-all;
+  }
+  /* === File Setup Dialog === */
+  .file-setup-icon { font-size: 56px; text-align: center; margin-bottom: 8px; }
+  .file-setup-actions { display: flex; flex-direction: column; gap: 12px; }
+  .file-setup-actions button {
+    padding: 16px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 12px;
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .file-setup-actions .btn-icon { font-size: 24px; flex-shrink: 0; }
+  .file-setup-actions .btn-text { display: flex; flex-direction: column; }
+  .file-setup-actions .btn-text small { font-weight: 400; font-size: 12px; color: #6b7280; margin-top: 2px; }
 
   /* === Unsaved Changes Dot === */
   .save-indicator {
@@ -851,6 +921,52 @@
     text-align: center;
   }
 
+  /* === Dropdown Menu === */
+  .dropdown { position: relative; }
+  .dropdown-content {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 220px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+    z-index: 500;
+    overflow: hidden;
+  }
+  .dropdown-content.hidden { display: none; }
+  .dropdown-content button {
+    display: block;
+    width: 100%;
+    padding: 14px 16px;
+    border: none;
+    background: none;
+    font-size: 15px;
+    font-family: inherit;
+    color: #1f2937;
+    text-align: left;
+    cursor: pointer;
+  }
+  .dropdown-content button:hover { background: #f3f4f6; }
+  .dropdown-separator {
+    height: 1px;
+    background: #e5e7eb;
+    margin: 4px 0;
+  }
+  .dropdown-file-info {
+    padding: 12px 16px;
+    font-size: 12px;
+    color: #6b7280;
+    line-height: 1.4;
+  }
+  .dropdown-file-info span { display: block; margin-bottom: 2px; }
+  .dropdown-file-info strong {
+    display: block;
+    font-size: 13px;
+    color: #166534;
+    word-break: break-all;
+  }
+
 </style>
 </head>
 <body>
@@ -858,11 +974,20 @@
   <header>
     <h1>CoDriver</h1>
     <div class="header-actions">
-      <span id="file-indicator" class="file-indicator hidden"></span>
       <span id="save-indicator" class="save-indicator hidden" title="Ungespeicherte Änderungen"></span>
-      <button id="btn-settings" class="btn-header-settings" type="button">Adressen</button>
-      <button id="btn-vehicles" class="btn-header-settings" type="button">Fahrzeuge</button>
-      <button id="btn-storage" class="btn-header-settings" type="button">Daten</button>
+      <div class="dropdown">
+        <button id="btn-menu" class="btn-header-settings" type="button">☰</button>
+        <div id="menu-dropdown" class="dropdown-content hidden">
+          <button type="button" id="btn-settings">Adressen</button>
+          <button type="button" id="btn-vehicles">Fahrzeuge</button>
+          <button type="button" id="btn-storage">Daten</button>
+          <div class="dropdown-separator"></div>
+          <div class="dropdown-file-info" id="menu-file-info">
+            <span>Aktives Fahrtenbuch:</span>
+            <strong id="menu-file-name">—</strong>
+          </div>
+        </div>
+      </div>
     </div>
   </header>
 
@@ -1143,7 +1268,9 @@
     fileInput: document.getElementById('file-input'),
     btnNewFile: document.getElementById('btn-new-file'),
     btnLoadFile: document.getElementById('btn-load-file'),
-    fileIndicator: document.getElementById('file-indicator'),
+    btnMenu: document.getElementById('btn-menu'),
+    menuDropdown: document.getElementById('menu-dropdown'),
+    menuFileName: document.getElementById('menu-file-name'),
     saveIndicator: document.getElementById('save-indicator'),
     btnStart: document.getElementById('btn-start'),
     btnEnd: document.getElementById('btn-end'),
@@ -1417,47 +1544,25 @@
   }
 
   async function tryReconnect() {
+    // Safari hat keine File System Access API → kein Auto-Reconnect möglich
     if (!isFileSystemAPI) return false;
     try {
       var handle = await retrieveFileHandle();
       if (!handle) return false;
 
-      if (navigator.permissions && navigator.permissions.query) {
-        try {
-          var result = await navigator.permissions.query({ name: 'file-system', handle: handle });
-          if (result.state === 'granted') {
-            var text = await readFromFile(handle);
-            var data = parseAppData(text);
-            if (data) {
-              fileHandle = handle;
-              fileName = handle.name;
-              appData = data;
-              onFileConnected();
-              return true;
-            }
-          }
-        } catch (permErr) {
-          // permissions.query may not support 'file-system' in all browsers
-          // Fall through: try direct read
-        }
-      }
-
-      // Fallback: try reading directly (may prompt user)
-      try {
-        var text2 = await readFromFile(handle);
-        var data2 = parseAppData(text2);
-        if (data2) {
-          fileHandle = handle;
-          fileName = handle.name;
-          appData = data2;
-          onFileConnected();
-          return true;
-        }
-      } catch (readErr) {
-        // Permission lost
+      // Einfach direkt versuchen zu lesen — bei fehlender Berechtigung
+      // schlägt getFile() fehl und wir fallen durch zum Setup.
+      var text = await readFromFile(handle);
+      var data = parseAppData(text);
+      if (data) {
+        fileHandle = handle;
+        fileName = handle.name;
+        appData = data;
+        onFileConnected();
+        return true;
       }
     } catch (e) {
-      // Handle invalid
+      // Handle ungültig oder Berechtigung verloren → Setup zeigen
     }
     try { await clearFileHandle(); } catch(e) {}
     return false;
@@ -1484,12 +1589,7 @@
   }
 
   function updateFileIndicator() {
-    if (fileName) {
-      el.fileIndicator.textContent = '📄 ' + fileName;
-      el.fileIndicator.classList.remove('hidden');
-    } else {
-      el.fileIndicator.classList.add('hidden');
-    }
+    el.menuFileName.textContent = fileName || '—';
   }
 
   function updateSaveIndicator() {
@@ -2359,6 +2459,22 @@
     var addrs = loadAddresses();
     if (addrs.work) el.tripName.value = addrs.work;
     el.tripName.focus();
+  });
+
+  // Menu Dropdown Toggle
+  el.btnMenu.addEventListener('click', function(e) {
+    e.stopPropagation();
+    el.menuDropdown.classList.toggle('hidden');
+  });
+  // Dropdown schließen bei Klick außerhalb
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.dropdown')) {
+      el.menuDropdown.classList.add('hidden');
+    }
+  });
+  // Dropdown schließen wenn ein Menüpunkt geklickt wird
+  el.menuDropdown.addEventListener('click', function() {
+    el.menuDropdown.classList.add('hidden');
   });
 
   el.btnSettings.addEventListener('click', openSettings);
