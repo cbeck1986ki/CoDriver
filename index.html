@@ -19,6 +19,7 @@
 
 <style>
 
+
   /* === Reset & Base === */
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; }
@@ -755,6 +756,100 @@
     width: 100%;
     text-align: center;
   }
+  /* === File Setup Dialog === */
+  .file-setup-icon { font-size: 56px; text-align: center; margin-bottom: 8px; }
+  .file-setup-actions { display: flex; flex-direction: column; gap: 12px; }
+  .file-setup-actions button {
+    padding: 16px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 12px;
+    cursor: pointer;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .file-setup-actions .btn-icon { font-size: 24px; flex-shrink: 0; }
+  .file-setup-actions .btn-text { display: flex; flex-direction: column; }
+  .file-setup-actions .btn-text small { font-weight: 400; font-size: 12px; color: #6b7280; margin-top: 2px; }
+
+  /* === File Indicator in Header === */
+  .file-indicator {
+    font-size: 11px;
+    background: rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.85);
+    padding: 4px 8px;
+    border-radius: 6px;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: default;
+  }
+  .file-indicator.hidden { display: none; }
+
+  /* === Unsaved Changes Dot === */
+  .save-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #f59e0b;
+    margin-right: 4px;
+    animation: pulse-dot 1.5s ease-in-out infinite;
+    vertical-align: middle;
+  }
+  .save-indicator.hidden { display: none; }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* === File Info in Storage Dialog === */
+  .storage-file-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 10px;
+    margin-bottom: 16px;
+    font-size: 14px;
+  }
+  .storage-file-info span { color: #374151; }
+  .storage-file-info strong { color: #166534; word-break: break-all; text-align: right; }
+  .storage-file-info.no-file { background: #fef3c7; border-color: #fde68a; }
+  .storage-file-info.no-file strong { color: #92400e; }
+
+  /* === Save Toast === */
+  .save-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #166534;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  .save-toast.show { opacity: 1; }
+
+  /* === Storage actions column layout === */
+  .storage-actions { display: flex; flex-direction: column; gap: 10px; }
+  .storage-actions .btn-primary,
+  .storage-actions .btn-secondary,
+  .storage-actions .btn-danger {
+    width: 100%;
+    text-align: center;
+  }
 
 </style>
 </head>
@@ -1370,6 +1465,11 @@
 
   function onFileConnected() {
     el.fileSetupDialog.classList.add('hidden');
+    if (state.active) {
+      showActive();
+    } else {
+      showIdle();
+    }
     updateFileIndicator();
     updateSaveIndicator();
     refreshVehicleSelect();
